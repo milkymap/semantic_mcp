@@ -9,7 +9,6 @@ from src.semantic_mcp.backend.mcp_router import MCPRouter
 from src.semantic_mcp.backend.mcp_types import McpServers, McpConfig
 from src.semantic_mcp.backend.mq_embedding import MQEmbedding
 from src.semantic_mcp.backend.mcp_api_server import start_mcp_server
-from src.semantic_mcp.client.agent_loop import AgentLoop
 
 
 # python -m src.semantic_mcp launch-mcp-router -j mcp-servers.json
@@ -71,23 +70,6 @@ def launch_api_server(ctx:click.Context, path2json_file_config:str):
         credentials=ctx.obj["credentials"]
     )
 
-
-@handler.command()
-@click.pass_context
-def launch_agent_loop(ctx:click.Context):
-    async def main():
-        agent_loop = AgentLoop(
-            anthropic_api_key=ctx.obj["credentials"].anthropic_api_key,
-            mcp_config=McpConfig(**{
-                "command": "npx",
-                "args": ["mcp-remote", "http://localhost:8200/mcp"],
-                "env": {}
-            })
-        )
-        async with agent_loop as agent_loop:
-            await agent_loop.run()
-
-    asyncio.run(main())
 
 if __name__ == "__main__":
     load_dotenv()
