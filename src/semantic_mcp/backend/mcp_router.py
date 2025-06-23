@@ -36,9 +36,6 @@ from semantic_mcp.settings import VectorStoreConfig, CredentialsConfig
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion, ParsedChatCompletion
 
-from google import genai 
-from google.genai.types import GenerateContentConfig, ThinkingConfig, Content, Part
-
 from .language_model_types import ChatMessage, StopReason, OpenaiModel, Role
 from .system_instructions import SystemInstructions
 
@@ -57,7 +54,6 @@ class MCPRouter:
             api_key=self.vector_store_config.qdrant_api_key
         )
         self.openai_client = AsyncOpenAI(api_key=self.credentials.openai_api_key)
-        self.gemini_client = genai.Client(api_key=self.credentials.gemini_api_key)
         if not await self.qdrant_client.collection_exists(collection_name=self.vector_store_config.qdrant_services_collection_name):
             await self.qdrant_client.create_collection(
                 collection_name=self.vector_store_config.qdrant_services_collection_name,
