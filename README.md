@@ -2,6 +2,9 @@
 
 A semantic Model Context Protocol (MCP) router that provides intelligent service discovery and tool management for AI agents. This project enables dynamic tool routing based on vector similarity search, allowing AI systems to efficiently discover and use relevant tools from multiple MCP servers.
 
+## MCP tools dataviz
+![alt text](mcp-tools.png)
+
 ## Features
 
 - **Semantic Tool Discovery**: Uses vector embeddings to find the most relevant tools for a given task
@@ -112,6 +115,12 @@ python -m semantic_mcp launch-api-server -j mcp-servers.json
 
 ```bash
 python -m semantic_mcp launch-agent-loop
+```
+
+### 6 . Docker 
+```bash
+docker build -t semantic_mcp:0.0 -f Dockerfile .
+docker run -it --rm --name semantic_mcp --env-file=.env semantic_mcp:0.0 --help
 ```
 
 ## Configuration
