@@ -50,8 +50,6 @@ Create a `.env` file with the required configuration:
 ```env
 # API Keys
 OPENAI_API_KEY=your_openai_key
-ANTHROPIC_API_KEY=your_anthropic_key  
-GEMINI_API_KEY=your_google_key
 
 # Vector Store Configuration
 EMBEDDING_MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
