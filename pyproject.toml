@@ -1,0 +1,29 @@
+[project]
+name = "semantic-mcp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "BA Ibrahima", email = "ibrahima.ba@ouest-france.fr" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.3.0",
+    "cohere>=5.20.0",
+    "cryptography>=43.0.0",
+    "fastapi>=0.121.2",
+    "mcp>=1.21.1",
+    "numpy>=2.3.4",
+    "openai>=2.8.0",
+    "pydantic-settings>=2.12.0",
+    "pyyaml>=6.0.3",
+    "qdrant-client>=1.15.1",
+    "uvicorn>=0.38.0",
+]
+
+[project.scripts]
+semantic-mcp = "semantic_mcp:main"
+
+[build-system]
+requires = ["uv_build>=0.8.17,<0.9.0"]
+build-backend = "uv_build"
