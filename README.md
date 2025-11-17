@@ -1,4 +1,4 @@
-=# Semantic MCP Discovery API
+# Semantic MCP Discovery API
 
 **Intelligent search and management system for Model Context Protocol (MCP) servers using vector embeddings and AI-powered analysis**
 
