@@ -20,7 +20,6 @@ from ..services.types import McpServerDescription, McpStartupConfig, DescribeMcp
 from ..log import logger
 from .mcp_handler_schema import (
     AddMCPServerRequest,
-    BulkAddMCPServersRequest,
     BulkAddMCPServersResponse,
     BulkAddResult,
     MCPServerConfig,
@@ -239,7 +238,6 @@ class MCPhandler(APIRouter):
             )
 
     def define_routes(self):
-
         @self.post("/mcp/servers", response_model=MCPServerResponse, status_code=status.HTTP_201_CREATED)
         async def add_mcp_server(request: AddMCPServerRequest, api_key: str = Depends(self.api_engine.auth_middleware.verify_api_key)):
             try:
@@ -449,48 +447,14 @@ class MCPhandler(APIRouter):
                 )
 
                 if startup_changed:
-                    # Re-analyze server with new startup config
-                    startup_config = self._build_startup_config(
-                        command=new_command,
-                        args=new_args,
-                        env=new_env
+                    server_info = await self._add_mcp_server_core(
+                        request=AddMCPServerRequest(
+                            server_name=server_name,
+                            command=new_command,
+                            args=new_args,
+                            env=new_env
+                        )
                     )
-
-                    # Use default values for timeout and alpha if not provided in original request
-                    bundle = await self._describe_and_embed_server(
-                        server_name=server_name,
-                        startup_config=startup_config,
-                        timeout=50,  # Default timeout
-                        alpha=0.1    # Default alpha
-                    )
-
-                    # Delete existing tools and server, then re-upsert with new data
-                    await self.api_engine.vector_store_service.delete_server(server_name)
-
-                    await self._upsert_tools(
-                        server_name=server_name,
-                        tools=bundle["tools"],
-                        tool_embeddings=bundle["tool_embeddings"]
-                    )
-
-                    await self._upsert_server(
-                        server_name=server_name,
-                        server_description=bundle["server_description"],
-                        server_embedding=bundle["server_embedding"],
-                        nb_tools=bundle["nb_tools"],
-                        encrypted_startup_config=bundle["encrypted_startup_config"]
-                    )
-
-                    server_info = MCPServerInfo(
-                        server_name=server_name,
-                        title=bundle["server_description"].title,
-                        summary=bundle["server_description"].summary,
-                        capabilities=bundle["server_description"].capabilities,
-                        limitations=bundle["server_description"].limitations,
-                        nb_tools=bundle["nb_tools"],
-                        startup_config=bundle["encrypted_startup_config"]
-                    )
-
                     return MCPServerResponse(
                         server=server_info,
                         message=f"MCP server '{server_name}' successfully updated and re-analyzed"
@@ -577,7 +541,6 @@ class MCPhandler(APIRouter):
                     detail=f"Failed to list tools: {str(e)}"
                 )
 
-
         @self.get("/mcp/statistics", response_model=MCPStatisticsResponse)
         async def get_statistics(api_key: str = Depends(self.api_engine.auth_middleware.verify_api_key)):
             try:
@@ -598,8 +561,6 @@ class MCPhandler(APIRouter):
                     detail=f"Failed to get statistics: {str(e)}"
                 )
         
-        
-
         @self.post("/mcp/servers/search", response_model=SearchServersResponse)
         async def search_servers(request: SearchServersRequest, api_key: str = Depends(self.api_engine.auth_middleware.verify_api_key)) -> SearchServersResponse:
             """
