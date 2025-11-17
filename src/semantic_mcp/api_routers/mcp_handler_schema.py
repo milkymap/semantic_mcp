@@ -28,6 +28,7 @@ class UpdateMCPServerRequest(BaseModel):
     command: Optional[str] = Field(None, description="Updated main command to start the server")
     args: Optional[List[str]] = Field(None, description="Updated arguments for the command")
     env: Optional[Dict[str, str]] = Field(None, description="Updated environment variables")
+    
 
 class MCPServerInfo(BaseModel):
     server_name: str = Field(..., description="Server name")
