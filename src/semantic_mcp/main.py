@@ -1,4 +1,4 @@
-from semantic_mcp import launch_server 
+from semantic_mcp import main 
 
 if __name__ == "__main__":
-    launch_server()
+    main()

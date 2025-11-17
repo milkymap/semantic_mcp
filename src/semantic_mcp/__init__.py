@@ -7,7 +7,7 @@ from .api_server import APIServer
 from .settings import ApiKeysSettings, ApiServerSettings
 
 @click.command()
-def launch_server() -> None:
+def main() -> None:
     load_dotenv()
     api_keys_settings = ApiKeysSettings()
     api_server_settings = ApiServerSettings()
