@@ -102,11 +102,11 @@ OPENAI_API_KEY=sk-proj-your-openai-api-key-here
 COHERE_API_KEY=your-cohere-api-key-here
 
 # API Authentication Key (for securing your API endpoints)
-# Generate a secure random string, e.g., using: openssl rand -base64 32
+# Generate using: openssl rand -base64 32
 API_KEY=your-secure-api-authentication-key
 
 # Encryption Key (for encrypting MCP server configurations)
-# Generate using: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Generate using: openssl rand -base64 32
 ENCRYPTION_KEY=your-32-byte-base64-encryption-key
 ```
 
@@ -151,7 +151,7 @@ THREAD_POOL_MAX_WORKERS=32
 openssl rand -base64 32
 
 # Generate encryption key
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+openssl rand -base64 32
 ```
 
 ## API Endpoints
