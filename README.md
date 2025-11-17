@@ -1,21 +1,21 @@
-# Semantic MCP Discovery API
+=# Semantic MCP Discovery API
 
-= **Intelligent search and management system for Model Context Protocol (MCP) servers using vector embeddings and AI-powered analysis**
+**Intelligent search and management system for Model Context Protocol (MCP) servers using vector embeddings and AI-powered analysis**
 
 ## Overview
 
 Semantic MCP Discovery API transforms how you discover and manage MCP servers by providing intelligent semantic search capabilities. Instead of manually browsing through server lists, simply describe what you're looking for in natural language and find the most relevant servers and tools.
 
-## ( Key Features
+## Key Features
 
-- **= Semantic Search**: Natural language queries to find relevant MCP servers and tools
-- **> AI-Powered Analysis**: Automatic server description and capability extraction
-- **=æ Bulk Management**: Upload multiple server configurations at once
-- **¡ Parallel Processing**: Fast concurrent server analysis and indexing
-- **<¯ Vector Similarity**: Advanced embedding-based similarity matching
-- **=Ë Standard Format**: Compatible with MCP server configuration formats
+- **Semantic Search**: Natural language queries to find relevant MCP servers and tools
+- **AI-Powered Analysis**: Automatic server description and capability extraction
+- **Bulk Management**: Upload multiple server configurations at once
+- **Parallel Processing**: Fast concurrent server analysis and indexing
+- **Vector Similarity**: Advanced embedding-based similarity matching
+- **Standard Format**: Compatible with MCP server configuration formats
 
-## =€ Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -23,7 +23,6 @@ Semantic MCP Discovery API transforms how you discover and manage MCP servers by
 - [uv](https://github.com/astral-sh/uv) package manager
 
 ### Installation
-
 ```bash
 git clone https://github.com/milkymap/semantic_mcp.git
 cd semantic_mcp
@@ -50,17 +49,19 @@ QDRANT_API_KEY=your-qdrant-key
 
 # Embedding Service
 OPENAI_API_KEY=your-openai-api-key
+
+# Encryption (for secure storage of server configurations)
+ENCRYPTION_KEY=your-32-character-encryption-key
 ```
 
 ### Running the Server
-
 ```bash
 uv run python -m semantic_mcp
 ```
 
 The API will be available at `http://localhost:8000`
 
-## =á API Endpoints
+## API Endpoints
 
 ### Server Management
 - `POST /api/mcp/servers` - Add single MCP server
@@ -77,7 +78,7 @@ The API will be available at `http://localhost:8000`
 - `GET /api/mcp/servers/{server_name}/tools` - List server tools
 - `GET /api/mcp/statistics` - Get system statistics
 
-## =' Usage Examples
+## Usage Examples
 
 ### Adding Servers
 
@@ -102,7 +103,6 @@ curl -X POST "http://localhost:8000/api/mcp/servers/bulk" \
 ```
 
 ### Semantic Search
-
 ```bash
 curl -X POST "http://localhost:8000/api/mcp/servers/search" \
   -H "Authorization: Bearer your-api-key" \
@@ -113,10 +113,9 @@ curl -X POST "http://localhost:8000/api/mcp/servers/search" \
   }'
 ```
 
-## =Á Configuration Format
+## Configuration Format
 
 Bulk server configuration uses this JSON structure:
-
 ```json
 {
   "mcpServers": {
@@ -136,7 +135,7 @@ Bulk server configuration uses this JSON structure:
 }
 ```
 
-## <× Architecture
+## Architecture
 
 - **FastAPI**: High-performance async web framework
 - **Qdrant**: Vector database for similarity search
@@ -144,10 +143,9 @@ Bulk server configuration uses this JSON structure:
 - **Pydantic**: Data validation and serialization
 - **Asyncio**: Concurrent processing for performance
 
-## =Ê Response Format
+## Response Format
 
 Search and bulk operations return detailed results:
-
 ```json
 {
   "results": [
@@ -169,15 +167,15 @@ Search and bulk operations return detailed results:
 }
 ```
 
-## > Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## =Ä License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## = Links
+## Links
 
 - **Issues**: [Report bugs or request features](https://github.com/milkymap/semantic_mcp/issues)
 - **MCP Protocol**: [Learn about Model Context Protocol](https://modelcontextprotocol.io/)
