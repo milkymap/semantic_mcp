@@ -1,27 +1,11 @@
 {
   "mcpServers": {
-    "weather-server": {
-      "command": "python",
-      "args": ["-m", "weather_mcp"],
+    "server_000": {
+      "command": "uvc|npx",
+      "args": ["array", "of", "arguments"],
       "env": {
-        "API_KEY": "your-weather-api-key",
-        "PORT": "3001"
-      }
-    },
-    "file-manager": {
-      "command": "node",
-      "args": ["./dist/index.js"],
-      "env": {
-        "NODE_ENV": "production"
-      }
-    },
-    "database-tools": {
-      "command": "python",
-      "args": ["-m", "db_mcp_server", "--config", "/app/config.json"],
-      "env": {
-        "DB_HOST": "localhost",
-        "DB_PORT": "5432",
-        "DB_NAME": "production"
+        "ENV_VAR_1": "value1",
+        "ENV_VAR_2": "value2"
       }
     }
   }
