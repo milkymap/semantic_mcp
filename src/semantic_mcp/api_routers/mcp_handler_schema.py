@@ -10,6 +10,19 @@ class AddMCPServerRequest(BaseModel):
     env: Dict[str, str] = Field(default_factory=dict, description="Environment variables for the server")
     timeout: Optional[int] = Field(50, description="Timeout in seconds for server description")
     alpha: Optional[float] = Field(0.1, description="Weighting factor for embeddings")
+
+class MCPServerConfig(BaseModel):
+    command: str = Field(..., description="Command to start the MCP server")
+    args: List[str] = Field(default_factory=list, description="Arguments for the command")
+    env: Dict[str, str] = Field(default_factory=dict, description="Environment variables for the server")
+    timeout: Optional[int] = Field(50, description="Timeout in seconds for server description")
+    alpha: Optional[float] = Field(0.1, description="Weighting factor for embeddings")
+
+class ClaudeCodeMCPConfig(BaseModel):
+    mcpServers: Dict[str, MCPServerConfig] = Field(..., description="Dictionary of server configurations keyed by server name")
+
+class BulkAddMCPServersRequest(BaseModel):
+    servers: List[AddMCPServerRequest] = Field(..., description="List of MCP server configurations to add")
     
 class UpdateMCPServerRequest(BaseModel):
     command: Optional[str] = Field(None, description="Updated main command to start the server")
@@ -110,3 +123,17 @@ class MCPCommandResponse(BaseModel):
     args: List[str] = Field(..., description="Command arguments")
     env: Dict[str, str] = Field(..., description="Environment variables")
     message: str = Field(..., description="Operation result message")
+
+class BulkAddResult(BaseModel):
+    server_name: str = Field(..., description="Server name")
+    success: bool = Field(..., description="Whether the server was added successfully")
+    message: str = Field(..., description="Success message or error description")
+    server_info: Optional[MCPServerInfo] = Field(None, description="Server information if successfully added")
+
+class BulkAddMCPServersResponse(BaseModel):
+    results: List[BulkAddResult] = Field(..., description="Results for each server")
+    successful_count: int = Field(..., description="Number of servers successfully added")
+    failed_count: int = Field(..., description="Number of servers that failed to add")
+    total_count: int = Field(..., description="Total number of servers processed")
+    message: str = Field(..., description="Overall operation result message")
+    processing_time_ms: float = Field(..., description="Total processing time in milliseconds")

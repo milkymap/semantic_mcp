@@ -3,11 +3,12 @@ from datetime import datetime
 import uuid
 import asyncio
 import time
+import json
 from uuid import uuid5, UUID, NAMESPACE_DNS
 
 import yaml
 
-from fastapi import APIRouter, HTTPException, status, Path, Query, Depends
+from fastapi import APIRouter, HTTPException, status, Path, Query, Depends, UploadFile, File
 from fastapi.responses import JSONResponse
 from qdrant_client import models
 
@@ -19,6 +20,11 @@ from ..services.types import McpServerDescription, McpStartupConfig, DescribeMcp
 from ..log import logger
 from .mcp_handler_schema import (
     AddMCPServerRequest,
+    BulkAddMCPServersRequest,
+    BulkAddMCPServersResponse,
+    BulkAddResult,
+    MCPServerConfig,
+    ClaudeCodeMCPConfig,
     UpdateMCPServerRequest,
     MCPServerResponse,
     MCPServerListResponse,
@@ -41,6 +47,7 @@ MCP Handler - Provides REST API endpoints for managing MCP servers and tools.
 
 Available endpoints (all prefixed with /api):
 - POST /api/mcp/servers - Add new MCP server
+- POST /api/mcp/servers/bulk - Bulk add multiple MCP servers from uploaded JSON file (Claude Code format)
 - GET /api/mcp/servers - List all servers (paginated)
 - GET /api/mcp/servers/{server_name} - Get server details
 - GET /api/mcp/servers/{server_name}/tools - List all tools for a server (paginated)
@@ -158,57 +165,178 @@ class MCPhandler(APIRouter):
             startup_config=encrypted_startup_config
         )
 
+    def _convert_claude_config_to_requests(self, claude_config: ClaudeCodeMCPConfig) -> List[AddMCPServerRequest]:
+        """Convert Claude Code MCP configuration format to internal AddMCPServerRequest format."""
+        requests = []
+        for server_name, config in claude_config.mcpServers.items():
+            request = AddMCPServerRequest(
+                server_name=server_name,
+                command=config.command,
+                args=config.args,
+                env=config.env,
+                timeout=config.timeout,
+                alpha=config.alpha
+            )
+            requests.append(request)
+        return requests
+
+    async def _add_mcp_server_core(self, request: AddMCPServerRequest) -> MCPServerInfo:
+        """Core logic for adding a single MCP server. Shared between single and bulk operations."""
+        startup_config = self._build_startup_config(
+            command=request.command,
+            args=request.args,
+            env=request.env
+        )
+
+        bundle = await self._describe_and_embed_server(
+            server_name=request.server_name,
+            startup_config=startup_config,
+            timeout=request.timeout,
+            alpha=request.alpha
+        )
+
+        await self._upsert_tools(
+            server_name=request.server_name,
+            tools=bundle["tools"],
+            tool_embeddings=bundle["tool_embeddings"]
+        )
+
+        await self._upsert_server(
+            server_name=request.server_name,
+            server_description=bundle["server_description"],
+            server_embedding=bundle["server_embedding"],
+            nb_tools=bundle["nb_tools"],
+            encrypted_startup_config=bundle["encrypted_startup_config"]
+        )
+
+        return MCPServerInfo(
+            server_name=request.server_name,
+            title=bundle["server_description"].title,
+            summary=bundle["server_description"].summary,
+            capabilities=bundle["server_description"].capabilities,
+            limitations=bundle["server_description"].limitations,
+            nb_tools=bundle["nb_tools"],
+            startup_config=bundle["encrypted_startup_config"]
+        )
+
+    async def _process_single_server(self, request: AddMCPServerRequest) -> BulkAddResult:
+        """Process a single server and return the result for bulk operations."""
+        try:
+            server_info = await self._add_mcp_server_core(request)
+            return BulkAddResult(
+                server_name=request.server_name,
+                success=True,
+                message=f"Successfully analyzed and indexed MCP server '{request.server_name}'",
+                server_info=server_info
+            )
+        except Exception as e:
+            logger.error(f"Failed to process server '{request.server_name}': {str(e)}")
+            return BulkAddResult(
+                server_name=request.server_name,
+                success=False,
+                message=f"Failed to process server: {str(e)}",
+                server_info=None
+            )
+
     def define_routes(self):
 
         @self.post("/mcp/servers", response_model=MCPServerResponse, status_code=status.HTTP_201_CREATED)
         async def add_mcp_server(request: AddMCPServerRequest, api_key: str = Depends(self.api_engine.auth_middleware.verify_api_key)):
             try:
-                startup_config = self._build_startup_config(
-                    command=request.command,
-                    args=request.args,
-                    env=request.env
-                )
-
-                bundle = await self._describe_and_embed_server(
-                    server_name=request.server_name,
-                    startup_config=startup_config,
-                    timeout=request.timeout,
-                    alpha=request.alpha
-                )
-
-                await self._upsert_tools(
-                    server_name=request.server_name,
-                    tools=bundle["tools"],
-                    tool_embeddings=bundle["tool_embeddings"]
-                )
-
-                await self._upsert_server(
-                    server_name=request.server_name,
-                    server_description=bundle["server_description"],
-                    server_embedding=bundle["server_embedding"],
-                    nb_tools=bundle["nb_tools"],
-                    encrypted_startup_config=bundle["encrypted_startup_config"]
-                )
-
-                server_info = MCPServerInfo(
-                    server_name=request.server_name,
-                    title=bundle["server_description"].title,
-                    summary=bundle["server_description"].summary,
-                    capabilities=bundle["server_description"].capabilities,
-                    limitations=bundle["server_description"].limitations,
-                    nb_tools=bundle["nb_tools"],
-                    startup_config=bundle["encrypted_startup_config"]
-                )
-
+                server_info = await self._add_mcp_server_core(request)
                 return MCPServerResponse(
                     server=server_info,
                     message=f"MCP server '{request.server_name}' successfully analyzed and indexed"
                 )
-
             except Exception as e:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Failed to process MCP server: {str(e)}"
+                )
+
+        @self.post("/mcp/servers/bulk", response_model=BulkAddMCPServersResponse, status_code=status.HTTP_201_CREATED)
+        async def bulk_add_mcp_servers(
+            file: UploadFile = File(..., description="JSON file containing MCP server configuration in Claude Code format"),
+            api_key: str = Depends(self.api_engine.auth_middleware.verify_api_key)
+        ):
+            start_time = time.time()
+
+            try:
+                # Validate file type
+                if not file.filename.endswith('.json'):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="File must be a JSON file"
+                    )
+
+                # Read and parse the uploaded file
+                try:
+                    content = await file.read()
+                    config_data = json.loads(content.decode('utf-8'))
+                except json.JSONDecodeError as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid JSON format: {str(e)}"
+                    )
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Failed to read file: {str(e)}"
+                    )
+
+                # Validate and parse the Claude Code configuration
+                try:
+                    claude_config = ClaudeCodeMCPConfig(**config_data)
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid configuration format: {str(e)}"
+                    )
+
+                if not claude_config.mcpServers:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="No servers found in configuration file"
+                    )
+
+                # Convert Claude Code format to internal format
+                server_requests = self._convert_claude_config_to_requests(claude_config)
+
+                # Process all servers in parallel using asyncio.gather
+                logger.info(f"Starting bulk add operation for {len(server_requests)} servers from uploaded file '{file.filename}'")
+                tasks = [self._process_single_server(server_request) for server_request in server_requests]
+                results = await asyncio.gather(*tasks, return_exceptions=False)
+
+                # Count successes and failures
+                successful_count = sum(1 for result in results if result.success)
+                failed_count = len(results) - successful_count
+
+                processing_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+
+                overall_message = f"Bulk operation completed: {successful_count} successful, {failed_count} failed"
+                if successful_count > 0 and failed_count == 0:
+                    overall_message = f"All {successful_count} servers successfully added"
+                elif successful_count == 0:
+                    overall_message = f"All {failed_count} servers failed to add"
+
+                logger.info(f"Bulk add operation completed in {processing_time:.2f}ms: {overall_message}")
+
+                return BulkAddMCPServersResponse(
+                    results=results,
+                    successful_count=successful_count,
+                    failed_count=failed_count,
+                    total_count=len(results),
+                    message=overall_message,
+                    processing_time_ms=processing_time
+                )
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Bulk add operation failed: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Bulk add operation failed: {str(e)}"
                 )
 
         @self.get("/mcp/servers/{server_name}", response_model=MCPServerResponse)
